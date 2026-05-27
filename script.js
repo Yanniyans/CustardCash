@@ -40,3 +40,17 @@ function runCalculator() {
     .then(data => alert("Saved to CustardCache!"))
     .catch(error => console.error('Error:', error));
 }
+// Run this when the page loads to "get" the previous data
+window.onload = function() {
+    fetch(WEB_APP_URL + "?action=getLastWeek") 
+    .then(response => response.json())
+    .then(data => {
+        // Now you have the data! 
+        // Example: Use it to set your 'current' starting money
+        console.log("Last week ended with:", data.endingMoney);
+        
+        // Update your UI here
+        document.getElementById('startDate').value = /* use data.endDate */;
+    })
+    .catch(error => console.error('Error fetching data:', error));
+};
