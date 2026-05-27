@@ -1,5 +1,20 @@
-// REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxAb2TptQm4hZ3SYycNLlnU24eir0soakfTdCHUnaeF82wLlUt1oZhOXxcLDHGT8BSdtQ/exec'; 
+
+// 1. Create a "memory" variable. We set it to 202 so if it's a brand new sheet, 202 - 2 = 200.
+let lastEndingMoney = 202; 
+
+// 2. Fetch the last row from your spreadsheet when the page loads
+window.onload = function() {
+    fetch(WEB_APP_URL + "?action=getLastWeek")
+    .then(response => response.json())
+    .then(data => {
+        if(data && data.endingMoney) {
+            lastEndingMoney = data.endingMoney; // Saves your 116 PHP here!
+            console.log("Successfully loaded last week's ending money: " + lastEndingMoney);
+        }
+    })
+    .catch(error => console.error('Error fetching data:', error));
+};
 
 function runCalculator() {
     let earnings = document.getElementById('earnings').value;
@@ -7,50 +22,44 @@ function runCalculator() {
     let start = new Date(document.getElementById('startDate').value);
     let end = new Date(document.getElementById('endDate').value);
     
-    // Calculate days
     let days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
     let dailySavings = [];
-    let current = 200; 
+    
+    // 3. Start the math based on the spreadsheet memory, not a hardcoded 200
+    let current = (lastEndingMoney === 2) ? 200 : lastEndingMoney - 2; 
 
     for (let i = 0; i < days; i++) {
         dailySavings.push(current);
-        // Reset to 200 if it hits 2, otherwise subtract 2
+        // Prepare for the next loop iteration
         current = (current === 2) ? 200 : current - 2;
     }
 
     let total = dailySavings.reduce((a, b) => a + b, 0);
     let weeklySaves = savingsTarget - total;
+    
+    // The starting money for this week is the first item in our array
+    let startingMoneyForThisWeek = dailySavings[0];
+    // The ending money is the very last item we calculated
+    let endingMoneyForThisWeek = dailySavings[dailySavings.length - 1]; 
 
-    // Push to Google Sheets
     fetch(WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({
-            weekNumber: 21, // You can make this dynamic via an input later
+            weekNumber: 21, 
             weeklyEarnings: earnings,
             savingsTarget: savingsTarget,
-            startingMoney: 200, 
-            endingMoney: (current === 200 ? 2 : current + 2), 
+            startingMoney: startingMoneyForThisWeek, 
+            endingMoney: endingMoneyForThisWeek, 
             totalSaved: total,
             weeklySaves: weeklySaves,
             status: 'Yellow'
         })
     })
     .then(response => response.json())
-    .then(data => alert("Saved to CustardCache!"))
+    .then(data => {
+        alert("Saved to CustardCache! The math started at " + startingMoneyForThisWeek);
+        // Update the memory for the next calculation so you don't have to refresh
+        lastEndingMoney = endingMoneyForThisWeek; 
+    })
     .catch(error => console.error('Error:', error));
 }
-// Run this when the page loads to "get" the previous data
-window.onload = function() {
-    fetch(WEB_APP_URL + "?action=getLastWeek") 
-    .then(response => response.json())
-    .then(data => {
-        // Now you have the data! 
-        // Example: Use it to set your 'current' starting money
-        console.log("Last week ended with:", data.endingMoney);
-        
-        // Update your UI here
-        document.getElementById('startDate').value = /* use data.endDate */;
-    })
-    .catch(error => console.error('Error fetching data:', error));
-};
