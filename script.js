@@ -1,15 +1,16 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxAb2TptQm4hZ3SYycNLlnU24eir0soakfTdCHUnaeF82wLlUt1oZhOXxcLDHGT8BSdtQ/exec'; 
+// Your Google Apps Script Web App URL
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw30tFky__0xTR87kUNMLnUz8V4Ee7GRNv6EFRwk589dckRro_cHjnm1m1tARIrx3oRiA/exec'; 
 
-// 1. Create a "memory" variable. We set it to 202 so if it's a brand new sheet, 202 - 2 = 200.
+// Memory variable. Defaults to 202 so a brand new sheet calculates 202 - 2 = 200.
 let lastEndingMoney = 202; 
 
-// 2. Fetch the last row from your spreadsheet when the page loads
+// Fetch the last row from your spreadsheet when the page loads
 window.onload = function() {
     fetch(WEB_APP_URL + "?action=getLastWeek")
     .then(response => response.json())
     .then(data => {
         if(data && data.endingMoney) {
-            lastEndingMoney = data.endingMoney; // Saves your 116 PHP here!
+            lastEndingMoney = data.endingMoney;
             console.log("Successfully loaded last week's ending money: " + lastEndingMoney);
         }
     })
@@ -25,12 +26,12 @@ function runCalculator() {
     let days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
     let dailySavings = [];
     
-    // 3. Start the math based on the spreadsheet memory, not a hardcoded 200
+    // Start the math based on the spreadsheet memory
     let current = (lastEndingMoney === 2) ? 200 : lastEndingMoney - 2; 
 
     for (let i = 0; i < days; i++) {
         dailySavings.push(current);
-        // Prepare for the next loop iteration
+        // Prepare for the next loop iteration (reset to 200 if it hits 2)
         current = (current === 2) ? 200 : current - 2;
     }
 
@@ -45,7 +46,7 @@ function runCalculator() {
     fetch(WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({
-            weekNumber: 21, 
+            weekNumber: 21, // Note: You can make this dynamic later
             weeklyEarnings: earnings,
             savingsTarget: savingsTarget,
             startingMoney: startingMoneyForThisWeek, 
@@ -57,7 +58,7 @@ function runCalculator() {
     })
     .then(response => response.json())
     .then(data => {
-        alert("Saved to CustardCache! The math started at " + startingMoneyForThisWeek);
+        alert("Saved to CustardCash! The math started at " + startingMoneyForThisWeek);
         // Update the memory for the next calculation so you don't have to refresh
         lastEndingMoney = endingMoneyForThisWeek; 
     })
