@@ -25,7 +25,7 @@
         h1 { font-size: 3rem; margin-bottom: 5px; }
         h2 { font-size: 1.5rem; margin-top: 20px; }
 
-        .btn-group { margin-bottom: 30px; }
+        .btn-group { margin-bottom: 20px; }
 
         button {
             background-color: var(--orange);
@@ -47,20 +47,51 @@
         .undo-btn { font-size: 0.9rem; padding: 10px 15px; background-color: var(--light-brown); margin-top: 15px; }
 
         #info-display {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--orange);
             min-height: 30px;
             margin-bottom: 15px;
         }
 
+        /* Calendar Header & Nav */
+        .calendar-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--dark-brown);
+            font-size: 2rem;
+            padding: 0 15px;
+            box-shadow: none;
+        }
+
         /* Calendar Grid */
+        .calendar-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--light-brown);
+        }
+
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 10px;
-            max-width: 600px;
-            margin: 0 auto;
+            gap: 8px;
         }
 
         .day-block {
@@ -73,14 +104,17 @@
             justify-content: center;
             border-radius: 8px;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: 0.2s;
         }
 
-        .day-block span { font-size: 0.7rem; font-weight: normal; margin-top: 2px; }
-        .day-block:hover { transform: scale(1.05); }
+        .day-block.empty {
+            background-color: transparent;
+            cursor: default;
+        }
 
+        .day-block:hover:not(.empty) { transform: scale(1.05); }
         .day-block.success { background-color: var(--bright-yellow); color: var(--dark-brown); }
     </style>
 </head>
@@ -98,7 +132,17 @@
 
     <div id="info-display">Tap a colored day to see details</div>
 
-    <div class="calendar" id="calendar-grid"></div>
+    <div class="calendar-wrapper">
+        <div class="calendar-header">
+            <button class="nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+            <span id="month-label">Month</span>
+            <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
+        </div>
+        <div class="weekdays">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+        <div class="calendar" id="calendar-grid"></div>
+    </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbyuSSiVqzrht8cPNgKj-7B6xgtbL22_j5QfzYrqzPBeEj7RPFmycHxQcgYbRU5uFSw5/exec"; 
@@ -107,15 +151,17 @@
         let currentTarget = 200;
         let currentDayNumber = 1;
         let savedEntries = [];
+        
+        // Always wake up on the current real-world month
+        let displayDate = new Date(); 
 
-        // 1. Fetch data from Google Sheets
         async function loadData() {
             setLoading(true);
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
-                savedEntries = data.slice(1); // Remove header
+                savedEntries = data.slice(1); 
                 recalculateState();
                 renderCalendar();
             } catch (error) {
@@ -125,80 +171,82 @@
             setLoading(false);
         }
 
-        // 2. Calculate totals and next target based on db memory
         function recalculateState() {
             currentTotal = 0;
             currentTarget = 200;
             currentDayNumber = savedEntries.length + 1;
 
             savedEntries.forEach(entry => {
-                currentTotal += parseInt(entry[3]); // Column D: Actual Saved
+                currentTotal += parseInt(entry[3]); 
                 currentTarget -= 2;
-                if (currentTarget < 0) currentTarget = 200; // Reset loop
+                if (currentTarget < 0) currentTarget = 200; 
             });
 
             document.getElementById('total-savings').innerText = currentTotal.toLocaleString() + " ₱";
             document.getElementById('daily-target').innerText = "Today's Target: " + currentTarget + " ₱";
         }
 
-        // 3. Render Calendar with Real Dates
+        function changeMonth(offset) {
+            displayDate.setMonth(displayDate.getMonth() + offset);
+            renderCalendar();
+        }
+
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = "";
             
-            // Base the calendar start date on the first log, or today if empty
-            let startDate = savedEntries.length > 0 ? new Date(savedEntries[0][0]) : new Date();
+            const year = displayDate.getFullYear();
+            const month = displayDate.getMonth();
+            
+            document.getElementById('month-label').innerText = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            // Render a 28-day continuous rolling view
-            for (let i = 0; i < 28; i++) {
-                let blockDate = new Date(startDate);
-                blockDate.setDate(startDate.getDate() + i);
-                
-                // Format: "Oct 12"
-                let dateString = blockDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Pad empty blocks before the 1st of the month
+            for (let i = 0; i < firstDay; i++) {
+                let emptyDiv = document.createElement('div');
+                emptyDiv.className = 'day-block empty';
+                grid.appendChild(emptyDiv);
+            }
+
+            // Render actual days
+            for (let day = 1; day <= daysInMonth; day++) {
+                let blockDate = new Date(year, month, day);
                 let fullDateStr = blockDate.toLocaleDateString();
 
                 let div = document.createElement('div');
                 div.className = 'day-block';
-                div.innerHTML = `${dateString}`;
+                div.innerText = day;
 
-                // Check if this date has been successfully saved
-                let matchingSave = savedEntries.find(entry => {
-                    let entryDate = new Date(entry[0]).toLocaleDateString();
-                    return entryDate === fullDateStr;
-                });
+                let matchingSave = savedEntries.find(entry => new Date(entry[0]).toLocaleDateString() === fullDateStr);
 
                 if (matchingSave) {
                     div.classList.add('success');
                     let amountSaved = matchingSave[3];
-                    // Add interactivity
                     div.onclick = () => {
-                        document.getElementById('info-display').innerText = `On ${dateString}, you saved ${amountSaved} ₱`;
+                        document.getElementById('info-display').innerText = `Saved ${amountSaved} ₱ on ${blockDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
                     };
                 } else {
                     div.onclick = () => {
-                        document.getElementById('info-display').innerText = `${dateString} is empty.`;
+                        document.getElementById('info-display').innerText = `No savings on ${blockDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
                     };
                 }
-
                 grid.appendChild(div);
             }
         }
 
-        // 4. Handle Save (Push to DB)
         async function logSavings(type) {
             setLoading(true);
             let payload = [];
             let loops = (type === 'weekly') ? 7 : 1;
 
-            // Generate payload locally based on the loop
             let tempTarget = currentTarget;
             let tempDayNum = currentDayNumber;
             let logDate = new Date();
 
             for (let i = 0; i < loops; i++) {
                 let thisDate = new Date(logDate);
-                // Fast forward dates if batching
                 if (i > 0) thisDate.setDate(logDate.getDate() + i); 
                 
                 payload.push({
@@ -219,7 +267,7 @@
                     method: "POST",
                     body: JSON.stringify({ action: "log", payload: payload })
                 });
-                await loadData(); // Reload memory to update UI perfectly
+                await loadData(); 
                 document.getElementById('info-display').innerText = "Savings Logged Successfully!";
             } catch (error) {
                 console.error("Error saving data", error);
@@ -227,10 +275,8 @@
             setLoading(false);
         }
 
-        // 5. Handle Undo Request
         async function undoLast() {
             if (savedEntries.length === 0) return;
-            
             if(!confirm("Are you sure you want to undo your last entry?")) return;
 
             setLoading(true);
@@ -239,7 +285,7 @@
                     method: "POST",
                     body: JSON.stringify({ action: "undo" })
                 });
-                await loadData(); // Reload memory from db
+                await loadData(); 
                 document.getElementById('info-display').innerText = "Last entry removed.";
             } catch (error) {
                 console.error("Error undoing data", error);
@@ -247,14 +293,12 @@
             setLoading(false);
         }
 
-        // Helper to prevent double clicks
         function setLoading(isLoading) {
             document.getElementById('btn-done').disabled = isLoading;
             document.getElementById('btn-weekly').disabled = isLoading;
             document.getElementById('btn-undo').disabled = isLoading;
         }
 
-        // Initialize App
         loadData();
     </script>
 </body>
