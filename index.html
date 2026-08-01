@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CustardCash</title>
+    <title>CustardCash Savings</title>
     <style>
         :root {
-            --pale-yellow: #fbf5c4; 
-            --light-brown: #a06b47; 
-            --dark-brown: #4d2b1f;  
-            --bright-yellow: #f1d54d; 
-            --orange: #e89d46;      
+            /* Warm Color Palette */
+            --pale-yellow: #fdf8d5; 
+            --light-brown: #b5835a; 
+            --dark-brown: #4a2c11;  
+            --bright-yellow: #fcd53f; 
+            --orange: #f29c38;      
         }
 
         body {
@@ -25,7 +26,7 @@
         h1 { font-size: 3rem; margin-bottom: 5px; }
         h2 { font-size: 1.5rem; margin-top: 20px; }
 
-        .btn-group { margin-bottom: 20px; }
+        .btn-group { margin-bottom: 10px; }
 
         button {
             background-color: var(--orange);
@@ -43,8 +44,28 @@
         button:active { transform: scale(0.98); }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .weekly-btn { font-size: 1rem; padding: 10px 20px; background-color: transparent; color: var(--orange); border: 2px solid var(--orange); }
-        .undo-btn { font-size: 0.9rem; padding: 10px 15px; background-color: var(--light-brown); margin-top: 15px; }
+        .weekly-btn { 
+            font-size: 1rem; 
+            padding: 10px 20px; 
+            background-color: transparent; 
+            color: var(--orange); 
+            border: 2px solid var(--orange); 
+        }
+        
+        .undo-btn { 
+            font-size: 0.9rem; 
+            padding: 10px 15px; 
+            background-color: var(--light-brown); 
+            margin-top: 15px; 
+        }
+
+        #sync-status {
+            font-style: italic;
+            color: var(--light-brown);
+            margin-top: 5px;
+            min-height: 20px;
+            font-size: 0.9rem;
+        }
 
         #info-display {
             font-size: 1.1rem;
@@ -130,6 +151,8 @@
         <button id="btn-undo" class="undo-btn" onclick="undoLast()">Undo Last Save</button>
     </div>
 
+    <div id="sync-status"></div>
+
     <div id="info-display">Tap a colored day to see details</div>
 
     <div class="calendar-wrapper">
@@ -145,28 +168,54 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyuSSiVqzrht8cPNgKj-7B6xgtbL22_j5QfzYrqzPBeEj7RPFmycHxQcgYbRU5uFSw5/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbx6ekd6jc8sY8cE-SL5pGetXSyTec1afUyUbNQffU9YQMexqP1Dn-FMpP0yurSoNC9O/exec"; 
         
         let currentTotal = 0;
         let currentTarget = 200;
         let currentDayNumber = 1;
         let savedEntries = [];
-        
-        // Always wake up on the current real-world month
         let displayDate = new Date(); 
 
+        function updatePurinStatus(state) {
+            const statusDiv = document.getElementById('sync-status');
+            if (state === 'consulting') {
+                statusDiv.innerText = "Consulting the purins...";
+            } else if (state === 'agreed') {
+                statusDiv.innerText = "The purins have agreed.";
+                setTimeout(() => {
+                    statusDiv.innerText = "";
+                }, 2500);
+            } else {
+                statusDiv.innerText = state; 
+            }
+        }
+
         async function loadData() {
-            setLoading(true);
+            const cachedData = localStorage.getItem('custardCashMemory');
+            if (cachedData) {
+                savedEntries = JSON.parse(cachedData);
+                recalculateState();
+                renderCalendar();
+            } else {
+                setLoading(true); 
+            }
+
+            updatePurinStatus('consulting'); 
+
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 
                 savedEntries = data.slice(1); 
+                localStorage.setItem('custardCashMemory', JSON.stringify(savedEntries));
+                
                 recalculateState();
                 renderCalendar();
+                updatePurinStatus('agreed'); 
+
             } catch (error) {
                 console.error("Error loading data", error);
-                document.getElementById('info-display').innerText = "Failed to load database.";
+                updatePurinStatus("The purins are confused (Connection Error).");
             }
             setLoading(false);
         }
@@ -203,14 +252,12 @@
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            // Pad empty blocks before the 1st of the month
             for (let i = 0; i < firstDay; i++) {
                 let emptyDiv = document.createElement('div');
                 emptyDiv.className = 'day-block empty';
                 grid.appendChild(emptyDiv);
             }
 
-            // Render actual days
             for (let day = 1; day <= daysInMonth; day++) {
                 let blockDate = new Date(year, month, day);
                 let fullDateStr = blockDate.toLocaleDateString();
@@ -238,9 +285,10 @@
 
         async function logSavings(type) {
             setLoading(true);
+            updatePurinStatus('consulting');
+
             let payload = [];
             let loops = (type === 'weekly') ? 7 : 1;
-
             let tempTarget = currentTarget;
             let tempDayNum = currentDayNumber;
             let logDate = new Date();
@@ -268,9 +316,11 @@
                     body: JSON.stringify({ action: "log", payload: payload })
                 });
                 await loadData(); 
+                updatePurinStatus('agreed');
                 document.getElementById('info-display').innerText = "Savings Logged Successfully!";
             } catch (error) {
                 console.error("Error saving data", error);
+                updatePurinStatus("The purins are confused (Connection Error).");
             }
             setLoading(false);
         }
@@ -280,15 +330,19 @@
             if(!confirm("Are you sure you want to undo your last entry?")) return;
 
             setLoading(true);
+            updatePurinStatus('consulting');
+
             try {
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "undo" })
                 });
                 await loadData(); 
+                updatePurinStatus('agreed');
                 document.getElementById('info-display').innerText = "Last entry removed.";
             } catch (error) {
                 console.error("Error undoing data", error);
+                updatePurinStatus("The purins are confused (Connection Error).");
             }
             setLoading(false);
         }
