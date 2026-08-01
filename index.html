@@ -2,24 +2,190 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CustardCash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CustardCash Savings Tracker</title>
+    <style>
+        /* Your Custom Color Palette */
+        :root {
+            --pale-yellow: #fbf5c4; /* App Background */
+            --light-brown: #a06b47; /* Empty/Missed Calendar Days */
+            --dark-brown: #4d2b1f;  /* Text & Numbers */
+            --bright-yellow: #f1d54d; /* Successful Days */
+            --orange: #e89d46;      /* Action Buttons */
+        }
+
+        body {
+            background-color: var(--pale-yellow);
+            color: var(--dark-brown);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* The Header: Running Total */
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 5px;
+        }
+
+        /* The Action Center */
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 20px;
+        }
+
+        /* The Buttons */
+        button {
+            background-color: var(--orange);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .weekly-btn {
+            font-size: 1rem;
+            padding: 10px 20px;
+            background-color: transparent;
+            color: var(--orange);
+            border: 2px solid var(--orange);
+        }
+
+        /* The Calendar Grid */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 40px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .day-block {
+            background-color: var(--light-brown);
+            color: var(--pale-yellow);
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .day-block.success {
+            background-color: var(--bright-yellow);
+            color: var(--dark-brown);
+        }
+    </style>
 </head>
 <body>
-    <h1>CustardCash Savings</h1>
-    
-    <label>Weekly Earnings:</label>
-    <input type="number" id="earnings" value="3000">
-    
-    <label>Start Date:</label>
-    <input type="date" id="startDate">
-    
-    <label>End Date:</label>
-    <input type="date" id="endDate">
-    
-    <button onclick="runCalculator()">Calculate & Save</button>
-    
-    <div id="result"></div>
 
-    <script src="script.js"></script>
+    <p>Total Savings</p>
+    <h1 id="total-savings">0 ₱</h1>
+
+    <h2 id="daily-target">Today's Target: 200 ₱</h2>
+    
+    <button onclick="logSavings('daily')">DONE</button>
+    <br>
+    <button class="weekly-btn" onclick="logSavings('weekly')">WEEKLY DROP</button>
+
+    <div class="calendar" id="calendar-grid">
+        </div>
+
+    <script>
+        // --- PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE ---
+        const API_URL = "YOUR_WEB_APP_URL_HERE"; 
+        
+        let currentTotal = 0;
+        let currentTarget = 200;
+        let currentDayNumber = 1;
+
+        // Fetch data on load to set current state
+        async function loadData() {
+            try {
+                // Using the native fetch() command to pull from GSheets
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // Remove header row and calculate totals
+                const entries = data.slice(1); 
+                
+                if (entries.length > 0) {
+                    // Logic to calculate exact state based on past entries goes here
+                    // For the boilerplate, we'll just render empty blocks
+                }
+                
+                renderCalendar(entries.length);
+            } catch (error) {
+                console.error("Error loading data", error);
+            }
+        }
+
+        // Handle the Done or Weekly button click
+        async function logSavings(type) {
+            let payload = [];
+            let loops = (type === 'weekly') ? 7 : 1;
+
+            for (let i = 0; i < loops; i++) {
+                payload.push({
+                    date: new Date().toLocaleDateString(),
+                    dayNumber: currentDayNumber,
+                    targetAmount: currentTarget,
+                    actualSaved: currentTarget,
+                    status: "Success"
+                });
+
+                currentTotal += currentTarget;
+                currentTarget -= 2;
+                currentDayNumber++;
+
+                // The Reset Loop Logic
+                if (currentTarget < 0) currentTarget = 200; 
+            }
+
+            // Update UI instantly for momentum
+            document.getElementById('total-savings').innerText = currentTotal + " ₱";
+            document.getElementById('daily-target').innerText = "Today's Target: " + currentTarget + " ₱";
+            renderCalendar(currentDayNumber - 1);
+
+            // Push to Google Sheets in the background
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+            } catch (error) {
+                console.error("Error saving data", error);
+            }
+        }
+
+        // Render dummy calendar grid visually
+        function renderCalendar(successfulDays) {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = "";
+            for (let i = 0; i < 28; i++) {
+                let div = document.createElement('div');
+                div.className = 'day-block';
+                if (i < successfulDays) {
+                    div.classList.add('success');
+                }
+                grid.appendChild(div);
+            }
+        }
+
+        // Initialize
+        loadData();
+    </script>
 </body>
 </html>
