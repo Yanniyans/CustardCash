@@ -6,8 +6,7 @@
     <title>CustardCash Savings</title>
     <style>
         :root {
-            /* Warm Color Palette */
-            --pale-yellow: #fdf8d5; 
+            var(--pale-yellow): #fdf8d5; 
             --light-brown: #b5835a; 
             --dark-brown: #4a2c11;  
             --bright-yellow: #fcd53f; 
@@ -15,7 +14,7 @@
         }
 
         body {
-            background-color: var(--pale-yellow);
+            background-color: #fdf8d5;
             color: var(--dark-brown);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             text-align: center;
@@ -25,6 +24,7 @@
 
         h1 { font-size: 3rem; margin-bottom: 5px; }
         h2 { font-size: 1.5rem; margin-top: 20px; }
+        h3 { font-size: 1.2rem; color: var(--light-brown); margin-bottom: 10px; }
 
         .btn-group { margin-bottom: 10px; }
 
@@ -44,19 +44,37 @@
         button:active { transform: scale(0.98); }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .weekly-btn { 
-            font-size: 1rem; 
-            padding: 10px 20px; 
-            background-color: transparent; 
-            color: var(--orange); 
-            border: 2px solid var(--orange); 
+        .weekly-btn { font-size: 1rem; padding: 10px 20px; background-color: transparent; color: var(--orange); border: 2px solid var(--orange); }
+        .undo-btn { font-size: 0.9rem; padding: 10px 15px; background-color: var(--light-brown); margin-top: 15px; }
+
+        /* Batch Updater Styles */
+        .batch-panel {
+            background-color: rgba(181, 131, 90, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            max-width: 400px;
+            margin: 20px auto;
+            border: 1px dashed var(--light-brown);
         }
+
+        .batch-panel input {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--light-brown);
+            color: var(--dark-brown);
+            background-color: white;
+            font-family: inherit;
+        }
+
+        .batch-calc-btn { font-size: 1rem; padding: 10px 20px; background-color: var(--dark-brown); margin-top: 10px;}
+        .batch-confirm-btn { font-size: 1rem; padding: 10px 20px; background-color: var(--bright-yellow); color: var(--dark-brown); margin-top: 10px;}
         
-        .undo-btn { 
-            font-size: 0.9rem; 
-            padding: 10px 15px; 
-            background-color: var(--light-brown); 
-            margin-top: 15px; 
+        #batch-result {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--orange);
+            margin: 15px 0;
+            display: none;
         }
 
         #sync-status {
@@ -67,74 +85,16 @@
             font-size: 0.9rem;
         }
 
-        #info-display {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--orange);
-            min-height: 30px;
-            margin-bottom: 15px;
-        }
-
-        /* Calendar Header & Nav */
-        .calendar-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 10px;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--dark-brown);
-            font-size: 2rem;
-            padding: 0 15px;
-            box-shadow: none;
-        }
+        #info-display { font-size: 1.1rem; font-weight: bold; color: var(--orange); min-height: 30px; margin-bottom: 15px; }
 
         /* Calendar Grid */
-        .calendar-wrapper {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: var(--light-brown);
-        }
-
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-        }
-
-        .day-block {
-            background-color: var(--light-brown);
-            color: var(--pale-yellow);
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .day-block.empty {
-            background-color: transparent;
-            cursor: default;
-        }
-
+        .calendar-wrapper { max-width: 600px; margin: 0 auto; }
+        .calendar-header { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 10px; font-size: 1.5rem; font-weight: bold; }
+        .nav-btn { background: none; border: none; color: var(--dark-brown); font-size: 2rem; padding: 0 15px; box-shadow: none; }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-weight: bold; margin-bottom: 5px; color: var(--light-brown); }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-block { background-color: var(--light-brown); color: #fdf8d5; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+        .day-block.empty { background-color: transparent; cursor: default; }
         .day-block:hover:not(.empty) { transform: scale(1.05); }
         .day-block.success { background-color: var(--bright-yellow); color: var(--dark-brown); }
     </style>
@@ -148,11 +108,23 @@
     <div class="btn-group">
         <button id="btn-done" onclick="logSavings('daily')">DONE</button><br>
         <button id="btn-weekly" class="weekly-btn" onclick="logSavings('weekly')">WEEKLY DROP</button><br>
-        <button id="btn-undo" class="undo-btn" onclick="undoLast()">Undo Last Save</button>
     </div>
 
-    <div id="sync-status"></div>
+    <div class="batch-panel">
+        <h3>Batch Catch-Up</h3>
+        <input type="date" id="batch-start"> to <input type="date" id="batch-end"><br>
+        <button class="batch-calc-btn" onclick="calculateBatch()">Calculate</button>
+        
+        <div id="batch-result">
+            <p>Total needed: <span id="batch-amount">0</span> ₱</p>
+            <p style="font-size: 0.9rem; color: var(--dark-brown);">For <span id="batch-days">0</span> days</p>
+            <button class="batch-confirm-btn" onclick="confirmBatch()">Confirm & Log</button>
+        </div>
+    </div>
 
+    <button id="btn-undo" class="undo-btn" onclick="undoLast()">Undo Last Move</button>
+
+    <div id="sync-status"></div>
     <div id="info-display">Tap a colored day to see details</div>
 
     <div class="calendar-wrapper">
@@ -168,13 +140,18 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx6ekd6jc8sY8cE-SL5pGetXSyTec1afUyUbNQffU9YQMexqP1Dn-FMpP0yurSoNC9O/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyBeYsPvc1v-dI670e81NrcHpQv59CfbWEvB6rvpvJb8NMtzYBsNSAMallnW1J855Zp/exec"; 
         
         let currentTotal = 0;
         let currentTarget = 200;
         let currentDayNumber = 1;
         let savedEntries = [];
+        let actionHistory = []; // Tracks how many days were saved in each transaction
         let displayDate = new Date(); 
+
+        // Batch tracking variables
+        let pendingBatchLoops = 0;
+        let pendingBatchStartDate = null;
 
         function updatePurinStatus(state) {
             const statusDiv = document.getElementById('sync-status');
@@ -182,9 +159,7 @@
                 statusDiv.innerText = "Consulting the purins...";
             } else if (state === 'agreed') {
                 statusDiv.innerText = "The purins have agreed.";
-                setTimeout(() => {
-                    statusDiv.innerText = "";
-                }, 2500);
+                setTimeout(() => { statusDiv.innerText = ""; }, 2500);
             } else {
                 statusDiv.innerText = state; 
             }
@@ -192,12 +167,13 @@
 
         async function loadData() {
             const cachedData = localStorage.getItem('custardCashMemory');
+            const cachedHistory = localStorage.getItem('custardCashHistory');
+            
             if (cachedData) {
                 savedEntries = JSON.parse(cachedData);
+                if (cachedHistory) actionHistory = JSON.parse(cachedHistory);
                 recalculateState();
                 renderCalendar();
-            } else {
-                setLoading(true); 
             }
 
             updatePurinStatus('consulting'); 
@@ -217,7 +193,6 @@
                 console.error("Error loading data", error);
                 updatePurinStatus("The purins are confused (Connection Error).");
             }
-            setLoading(false);
         }
 
         function recalculateState() {
@@ -283,74 +258,148 @@
             }
         }
 
-        async function logSavings(type) {
-            setLoading(true);
+        // --- BATCH UPDATER LOGIC ---
+        function calculateBatch() {
+            const startStr = document.getElementById('batch-start').value;
+            const endStr = document.getElementById('batch-end').value;
+            
+            if (!startStr || !endStr) {
+                alert("Please select both a start and end date.");
+                return;
+            }
+
+            const startDate = new Date(startStr);
+            const endDate = new Date(endStr);
+            
+            // Calculate days inclusive
+            const diffTime = endDate - startDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+
+            if (diffDays <= 0) {
+                alert("End date must be after start date.");
+                return;
+            }
+
+            // Simulate the math to show the user the total amount needed
+            let simTarget = currentTarget;
+            let simTotal = 0;
+            
+            for (let i = 0; i < diffDays; i++) {
+                simTotal += simTarget;
+                simTarget -= 2;
+                if (simTarget < 0) simTarget = 200;
+            }
+
+            // Display results
+            document.getElementById('batch-amount').innerText = simTotal.toLocaleString();
+            document.getElementById('batch-days').innerText = diffDays;
+            document.getElementById('batch-result').style.display = "block";
+            
+            pendingBatchLoops = diffDays;
+            pendingBatchStartDate = startDate;
+        }
+
+        function confirmBatch() {
+            if (pendingBatchLoops > 0) {
+                logSavings('custom', pendingBatchLoops, pendingBatchStartDate);
+                // Reset UI
+                document.getElementById('batch-result').style.display = "none";
+                document.getElementById('batch-start').value = "";
+                document.getElementById('batch-end').value = "";
+            }
+        }
+
+        // --- LOGGING & UNDO LOGIC ---
+        async function logSavings(type, customLoops = null, customStartDate = null) {
             updatePurinStatus('consulting');
 
             let payload = [];
-            let loops = (type === 'weekly') ? 7 : 1;
+            let loops = customLoops ? customLoops : (type === 'weekly' ? 7 : 1);
             let tempTarget = currentTarget;
             let tempDayNum = currentDayNumber;
-            let logDate = new Date();
+            let logDate = customStartDate ? new Date(customStartDate) : new Date();
 
             for (let i = 0; i < loops; i++) {
                 let thisDate = new Date(logDate);
                 if (i > 0) thisDate.setDate(logDate.getDate() + i); 
                 
+                let newEntry = [
+                    thisDate.toLocaleDateString(),
+                    tempDayNum,
+                    tempTarget,
+                    tempTarget,
+                    "Success"
+                ];
+
                 payload.push({
-                    date: thisDate.toLocaleDateString(),
-                    dayNumber: tempDayNum,
-                    targetAmount: tempTarget,
-                    actualSaved: tempTarget,
-                    status: "Success"
+                    date: newEntry[0],
+                    dayNumber: newEntry[1],
+                    targetAmount: newEntry[2],
+                    actualSaved: newEntry[3],
+                    status: newEntry[4]
                 });
+
+                // Optimistic UI memory push
+                savedEntries.push(newEntry);
 
                 tempTarget -= 2;
                 tempDayNum++;
                 if (tempTarget < 0) tempTarget = 200; 
             }
 
+            // Record transaction history
+            actionHistory.push(loops);
+            localStorage.setItem('custardCashHistory', JSON.stringify(actionHistory));
+            localStorage.setItem('custardCashMemory', JSON.stringify(savedEntries));
+            
+            recalculateState();
+            renderCalendar();
+
             try {
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "log", payload: payload })
                 });
-                await loadData(); 
                 updatePurinStatus('agreed');
-                document.getElementById('info-display').innerText = "Savings Logged Successfully!";
+                document.getElementById('info-display').innerText = "Transaction Logged Successfully!";
             } catch (error) {
                 console.error("Error saving data", error);
-                updatePurinStatus("The purins are confused (Connection Error).");
+                updatePurinStatus("The purins dropped the pudding (Connection Error).");
             }
-            setLoading(false);
         }
 
         async function undoLast() {
-            if (savedEntries.length === 0) return;
-            if(!confirm("Are you sure you want to undo your last entry?")) return;
+            if (savedEntries.length === 0 || actionHistory.length === 0) {
+                alert("Nothing to undo!");
+                return;
+            }
+            if(!confirm("Are you sure you want to undo your very last move?")) return;
 
-            setLoading(true);
             updatePurinStatus('consulting');
+
+            // Find exactly how many rows the last move created
+            const rowsToUndo = actionHistory.pop();
+
+            // Optimistic UI memory pop
+            savedEntries.splice(-rowsToUndo);
+
+            localStorage.setItem('custardCashHistory', JSON.stringify(actionHistory));
+            localStorage.setItem('custardCashMemory', JSON.stringify(savedEntries));
+            
+            recalculateState();
+            renderCalendar();
 
             try {
                 await fetch(API_URL, {
                     method: "POST",
-                    body: JSON.stringify({ action: "undo" })
+                    body: JSON.stringify({ action: "undo", count: rowsToUndo })
                 });
-                await loadData(); 
                 updatePurinStatus('agreed');
-                document.getElementById('info-display').innerText = "Last entry removed.";
+                document.getElementById('info-display').innerText = "Last move completely removed.";
             } catch (error) {
                 console.error("Error undoing data", error);
-                updatePurinStatus("The purins are confused (Connection Error).");
+                updatePurinStatus("The purins dropped the pudding (Connection Error).");
             }
-            setLoading(false);
-        }
-
-        function setLoading(isLoading) {
-            document.getElementById('btn-done').disabled = isLoading;
-            document.getElementById('btn-weekly').disabled = isLoading;
-            document.getElementById('btn-undo').disabled = isLoading;
         }
 
         loadData();
