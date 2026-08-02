@@ -6,6 +6,7 @@
     <title>CustardCash Savings</title>
     <style>
         :root {
+            /* FIXED: The syntax typo here has been corrected */
             --pale-yellow: #fdf8d5; 
             --light-brown: #b5835a; 
             --dark-brown: #4a2c11;  
@@ -59,7 +60,7 @@
             width: 250px;
             border: 1px dashed var(--light-brown);
             text-align: left;
-            display: none; /* Hidden by default */
+            display: none; 
         }
 
         .batch-panel input {
@@ -85,7 +86,7 @@
         #batch-result { font-weight: bold; font-size: 1rem; color: var(--orange); margin-top: 10px; display: none; }
 
         /* Main UI Elements */
-        .main-content { margin-top: 60px; } /* Push down to avoid overlap with side panel */
+        .main-content { margin-top: 60px; } 
 
         .btn-group { margin-bottom: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 
@@ -134,12 +135,11 @@
         .nav-btn { background: none; border: none; color: var(--dark-brown); font-size: 2rem; padding: 0 15px; cursor: pointer; }
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-weight: bold; margin-bottom: 5px; color: var(--light-brown); }
         .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .day-block { background-color: var(--light-brown); color: #fdf8d5; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+        .day-block { background-color: var(--light-brown); color: var(--pale-yellow); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
         .day-block.empty { background-color: transparent; cursor: default; }
         .day-block:hover:not(.empty) { transform: scale(1.05); }
         .day-block.success { background-color: var(--bright-yellow); color: var(--dark-brown); }
         
-        /* Mobile adjustment */
         @media (max-width: 600px) {
             .side-controls { position: relative; top: 0; right: 0; align-items: center; margin-bottom: 20px; }
             .main-content { margin-top: 0; }
@@ -202,7 +202,8 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyBeYsPvc1v-dI670e81NrcHpQv59CfbWEvB6rvpvJb8NMtzYBsNSAMallnW1J855Zp/exec"
+        // MUST BE IN QUOTES!
+        const API_URL = "https://script.google.com/macros/s/AKfycbyBeYsPvc1v-dI670e81NrcHpQv59CfbWEvB6rvpvJb8NMtzYBsNSAMallnW1J855Zp/exec"; 
         
         let currentTotal = 0;
         let currentTarget = 200;
@@ -211,7 +212,6 @@
         let actionHistory = []; 
         let displayDate = new Date(); 
         
-        // UI Toggles
         let isTotalHidden = true;
         let pendingBatchLoops = 0;
         let pendingBatchStartDate = null;
@@ -237,11 +237,20 @@
                 document.getElementById('allowance-input').value = cachedAllowance;
             }
 
-            if (cachedData) {
-                savedEntries = JSON.parse(cachedData);
-                if (cachedHistory) actionHistory = JSON.parse(cachedHistory);
-                recalculateState();
-                renderCalendar();
+            // ADDED SAFETY NET: Try/Catch around local memory loading
+            try {
+                if (cachedData) {
+                    savedEntries = JSON.parse(cachedData);
+                    if (cachedHistory) actionHistory = JSON.parse(cachedHistory);
+                    recalculateState();
+                    renderCalendar();
+                }
+            } catch (error) {
+                console.warn("Corrupted local memory found. Wiping slate clean.", error);
+                localStorage.removeItem('custardCashMemory');
+                localStorage.removeItem('custardCashHistory');
+                savedEntries = [];
+                actionHistory = [];
             }
 
             updatePurinStatus('consulting'); 
@@ -301,7 +310,6 @@
             localStorage.setItem('custardCashAllowance', allowance);
         }
 
-        // --- WEEKLY MATH CONFIRMATION ---
         function promptWeeklyDrop() {
             const allowanceInput = document.getElementById('allowance-input').value;
             const allowance = parseFloat(allowanceInput) || 0;
@@ -311,7 +319,6 @@
                 return;
             }
 
-            // Simulate the 7-day math without saving it
             let simTarget = currentTarget;
             let weeklyDropSum = 0;
             
@@ -321,7 +328,6 @@
                 if (simTarget < 0) simTarget = 200;
             }
 
-            // The user's formula
             const weeklySavings = (allowance / 2) - weeklyDropSum;
 
             const confirmMessage = `Weekly Custard Drop: ${weeklyDropSum} ₱\n` +
