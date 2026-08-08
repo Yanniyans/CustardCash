@@ -6,7 +6,6 @@
     <title>CustardCash Savings</title>
     <style>
         :root {
-            /* FIXED: The syntax typo here has been corrected */
             --pale-yellow: #fdf8d5; 
             --light-brown: #b5835a; 
             --dark-brown: #4a2c11;  
@@ -24,7 +23,16 @@
             position: relative;
         }
 
-        h1 { font-size: 3rem; margin-bottom: 5px; }
+        .app-title { 
+            font-size: 3.5rem; 
+            color: var(--orange); 
+            margin-top: 0;
+            margin-bottom: 10px; 
+            font-weight: 900; 
+            letter-spacing: -1px;
+        }
+
+        h1 { font-size: 3rem; margin-bottom: 5px; margin-top: 5px; }
         h2 { font-size: 1.5rem; margin-top: 20px; }
         h3 { font-size: 1.2rem; color: var(--light-brown); margin-bottom: 10px; }
 
@@ -169,12 +177,14 @@
     </div>
 
     <div class="main-content">
-        <p>Total Savings</p>
+        <h1 class="app-title">CustardCash</h1>
+        
+        <p style="margin-bottom: 0;">Total Savings</p>
         <h1 id="total-savings">*** ₱</h1>
         <h2 id="daily-target">Loading...</h2>
         
         <div class="btn-group">
-            <button class="main-btn" id="btn-done" onclick="logSavings('daily')">DONE</button>
+            <button class="main-btn" id="btn-done" onclick="logSavings('daily')">CUSTARD CASH-IN</button>
             
             <div class="weekly-group">
                 <input type="number" id="allowance-input" class="allowance-input" placeholder="Weekly Allowance (₱)" onchange="saveAllowance()">
@@ -203,7 +213,7 @@
 
     <script>
         // MUST BE IN QUOTES!
-        const API_URL = "https://script.google.com/macros/s/AKfycbyBeYsPvc1v-dI670e81NrcHpQv59CfbWEvB6rvpvJb8NMtzYBsNSAMallnW1J855Zp/exec"; 
+        const API_URL = "YOUR_WEB_APP_URL_HERE"; 
         
         let currentTotal = 0;
         let currentTarget = 200;
@@ -237,7 +247,6 @@
                 document.getElementById('allowance-input').value = cachedAllowance;
             }
 
-            // ADDED SAFETY NET: Try/Catch around local memory loading
             try {
                 if (cachedData) {
                     savedEntries = JSON.parse(cachedData);
