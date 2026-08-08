@@ -6,7 +6,6 @@
     <title>CustardCash Savings</title>
     <style>
         :root {
-            /* FIXED: The syntax typo here has been corrected */
             --pale-yellow: #fdf8d5; 
             --light-brown: #b5835a; 
             --dark-brown: #4a2c11;  
@@ -22,6 +21,16 @@
             padding: 20px;
             margin: 0;
             position: relative;
+        }
+
+        /* App Logo/Title */
+        .app-title {
+            font-size: 2.8rem;
+            color: var(--orange);
+            margin-bottom: 10px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.05);
         }
 
         h1 { font-size: 3rem; margin-bottom: 5px; }
@@ -169,6 +178,8 @@
     </div>
 
     <div class="main-content">
+        <div class="app-title">CustardCash</div>
+
         <p>Total Savings</p>
         <h1 id="total-savings">*** ₱</h1>
         <h2 id="daily-target">Loading...</h2>
@@ -301,225 +312,4 @@
         }
 
         function toggleBatchLogger() {
-            const panel = document.getElementById('batch-panel');
-            panel.style.display = (panel.style.display === "block") ? "none" : "block";
-        }
-
-        function saveAllowance() {
-            const allowance = document.getElementById('allowance-input').value;
-            localStorage.setItem('custardCashAllowance', allowance);
-        }
-
-        function promptWeeklyDrop() {
-            const allowanceInput = document.getElementById('allowance-input').value;
-            const allowance = parseFloat(allowanceInput) || 0;
-            
-            if (allowance === 0) {
-                alert("Please enter your weekly allowance first!");
-                return;
-            }
-
-            let simTarget = currentTarget;
-            let weeklyDropSum = 0;
-            
-            for (let i = 0; i < 7; i++) {
-                weeklyDropSum += simTarget;
-                simTarget -= 2;
-                if (simTarget < 0) simTarget = 200;
-            }
-
-            const weeklySavings = (allowance / 2) - weeklyDropSum;
-
-            const confirmMessage = `Weekly Custard Drop: ${weeklyDropSum} ₱\n` +
-                                   `Weekly Savings remaining: ${weeklySavings} ₱\n\n` +
-                                   `Do you want to confirm and log this week?`;
-
-            if(confirm(confirmMessage)) {
-                logSavings('weekly');
-            }
-        }
-
-        function changeMonth(offset) {
-            displayDate.setMonth(displayDate.getMonth() + offset);
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = "";
-            
-            const year = displayDate.getFullYear();
-            const month = displayDate.getMonth();
-            
-            document.getElementById('month-label').innerText = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                let emptyDiv = document.createElement('div');
-                emptyDiv.className = 'day-block empty';
-                grid.appendChild(emptyDiv);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                let blockDate = new Date(year, month, day);
-                let fullDateStr = blockDate.toLocaleDateString();
-
-                let div = document.createElement('div');
-                div.className = 'day-block';
-                div.innerText = day;
-
-                let matchingSave = savedEntries.find(entry => new Date(entry[0]).toLocaleDateString() === fullDateStr);
-
-                if (matchingSave) {
-                    div.classList.add('success');
-                    let amountSaved = matchingSave[3];
-                    div.onclick = () => {
-                        document.getElementById('info-display').innerText = `Saved ${amountSaved} ₱ on ${blockDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-                    };
-                } else {
-                    div.onclick = () => {
-                        document.getElementById('info-display').innerText = `No savings on ${blockDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-                    };
-                }
-                grid.appendChild(div);
-            }
-        }
-
-        function calculateBatch() {
-            const startStr = document.getElementById('batch-start').value;
-            const endStr = document.getElementById('batch-end').value;
-            
-            if (!startStr || !endStr) {
-                alert("Please select both dates.");
-                return;
-            }
-
-            const startDate = new Date(startStr);
-            const endDate = new Date(endStr);
-            const diffTime = endDate - startDate;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-
-            if (diffDays <= 0) {
-                alert("End date must be after start date.");
-                return;
-            }
-
-            let simTarget = currentTarget;
-            let simTotal = 0;
-            
-            for (let i = 0; i < diffDays; i++) {
-                simTotal += simTarget;
-                simTarget -= 2;
-                if (simTarget < 0) simTarget = 200;
-            }
-
-            document.getElementById('batch-amount').innerText = simTotal.toLocaleString();
-            document.getElementById('batch-days').innerText = diffDays;
-            document.getElementById('batch-result').style.display = "block";
-            
-            pendingBatchLoops = diffDays;
-            pendingBatchStartDate = startDate;
-        }
-
-        function confirmBatch() {
-            if (pendingBatchLoops > 0) {
-                logSavings('custom', pendingBatchLoops, pendingBatchStartDate);
-                document.getElementById('batch-result').style.display = "none";
-                document.getElementById('batch-start').value = "";
-                document.getElementById('batch-end').value = "";
-                toggleBatchLogger(); 
-            }
-        }
-
-        async function logSavings(type, customLoops = null, customStartDate = null) {
-            updatePurinStatus('consulting');
-
-            let payload = [];
-            let loops = customLoops ? customLoops : (type === 'weekly' ? 7 : 1);
-            let tempTarget = currentTarget;
-            let tempDayNum = currentDayNumber;
-            let logDate = customStartDate ? new Date(customStartDate) : new Date();
-
-            for (let i = 0; i < loops; i++) {
-                let thisDate = new Date(logDate);
-                if (i > 0) thisDate.setDate(logDate.getDate() + i); 
-                
-                let newEntry = [
-                    thisDate.toLocaleDateString(),
-                    tempDayNum,
-                    tempTarget,
-                    tempTarget,
-                    "Success"
-                ];
-
-                payload.push({
-                    date: newEntry[0],
-                    dayNumber: newEntry[1],
-                    targetAmount: newEntry[2],
-                    actualSaved: newEntry[3],
-                    status: newEntry[4]
-                });
-
-                savedEntries.push(newEntry);
-                tempTarget -= 2;
-                tempDayNum++;
-                if (tempTarget < 0) tempTarget = 200; 
-            }
-
-            actionHistory.push(loops);
-            localStorage.setItem('custardCashHistory', JSON.stringify(actionHistory));
-            localStorage.setItem('custardCashMemory', JSON.stringify(savedEntries));
-            
-            recalculateState();
-            renderCalendar();
-
-            try {
-                await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "log", payload: payload })
-                });
-                updatePurinStatus('agreed');
-                document.getElementById('info-display').innerText = "Transaction Logged Successfully!";
-            } catch (error) {
-                console.error("Error saving data", error);
-                updatePurinStatus("The purins dropped the pudding (Connection Error).");
-            }
-        }
-
-        async function undoLast() {
-            if (savedEntries.length === 0 || actionHistory.length === 0) {
-                alert("Nothing to undo!");
-                return;
-            }
-            if(!confirm("Are you sure you want to undo your very last move?")) return;
-
-            updatePurinStatus('consulting');
-
-            const rowsToUndo = actionHistory.pop();
-            savedEntries.splice(-rowsToUndo);
-
-            localStorage.setItem('custardCashHistory', JSON.stringify(actionHistory));
-            localStorage.setItem('custardCashMemory', JSON.stringify(savedEntries));
-            
-            recalculateState();
-            renderCalendar();
-
-            try {
-                await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "undo", count: rowsToUndo })
-                });
-                updatePurinStatus('agreed');
-                document.getElementById('info-display').innerText = "Last move completely removed.";
-            } catch (error) {
-                console.error("Error undoing data", error);
-                updatePurinStatus("The purins dropped the pudding (Connection Error).");
-            }
-        }
-
-        loadData();
-    </script>
-</body>
-</html>
+            const panel = document.getElementById('
